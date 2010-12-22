@@ -259,11 +259,9 @@ A/B OTA specific options
   --max_threads
       Specify max number of threads allowed when generating A/B OTA
 
-  --vabc_cow_version
-      Specify the VABC cow version to be used
-
-  --compression_factor
-      Specify the maximum block size to be compressed at once during OTA. supported options: 4k, 8k, 16k, 32k, 64k, 128k, 256k
+  --backup <boolean>
+      Enable or disable the execution of backuptool.sh.
+      Disabled by default.
 """
 
 from __future__ import print_function
@@ -335,9 +333,7 @@ OPTIONS.enable_lz4diff = False
 OPTIONS.vabc_compression_param = None
 OPTIONS.security_patch_level = None
 OPTIONS.max_threads = None
-OPTIONS.vabc_cow_version = None
-OPTIONS.compression_factor = None
-
+OPTIONS.backuptool = False
 
 POSTINSTALL_CONFIG = 'META/postinstall_config.txt'
 DYNAMIC_PARTITION_INFO = 'META/dynamic_partitions_info.txt'
@@ -1307,19 +1303,8 @@ def main(argv):
       else:
         raise ValueError("Cannot parse value %r for option %r - only "
                          "integers are allowed." % (a, o))
-    elif o in ("--compression_factor"):
-        values = ["4k", "8k", "16k", "32k", "64k", "128k", "256k"]
-        if a[:-1].isdigit() and a in values and a.endswith("k"):
-            OPTIONS.compression_factor = str(int(a[:-1]) * 1024)
-        else:
-            raise ValueError("Please specify value from following options: 4k, 8k, 16k, 32k, 64k, 128k", "256k")
-
-    elif o == "--vabc_cow_version":
-      if a.isdigit():
-        OPTIONS.vabc_cow_version = a
-      else:
-        raise ValueError("Cannot parse value %r for option %r - only "
-                         "integers are allowed." % (a, o))
+    elif o == "--backup":
+      OPTIONS.backuptool = True
     else:
       return False
     return True
@@ -1368,9 +1353,8 @@ def main(argv):
                                  "vabc_compression_param=",
                                  "security_patch_level=",
                                  "max_threads=",
-                                 "vabc_cow_version=",
-                                 "compression_factor=",
-                             ], extra_option_handler=[option_handler, payload_signer.signer_options])
+                                 "backup=",
+                             ], extra_option_handler=option_handler)
   common.InitLogging()
 
   if len(args) != 2:
