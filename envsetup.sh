@@ -48,13 +48,87 @@ if [ ! "$T" ]; then
 fi
 IMPORTING_ENVSETUP=true source $T/build/make/shell_utils.sh
 
+
+# Help
+function hmm() {
+cat <<EOF
+
+Run "m help" for help with the build system itself.
+
+Invoke ". build/envsetup.sh" from your shell to add the following functions to your environment:
+- lunch:      lunch <product_name>-<build_variant>
+              Selects <product_name> as the product to build, and <build_variant> as the variant to
+              build, and stores those selections in the environment to be read by subsequent
+              invocations of 'm' etc.
+- tapas:      tapas [<App1> <App2> ...] [arm|x86|arm64|x86_64] [eng|userdebug|user]
+              Sets up the build environment for building unbundled apps (APKs).
+- banchan:    banchan <module1> [<module2> ...] [arm|x86|arm64|x86_64|arm64_only|x86_64only] \
+                      [eng|userdebug|user]
+              Sets up the build environment for building unbundled modules (APEXes).
+- croot:      Changes directory to the top of the tree, or a subdirectory thereof.
+- m:          Makes from the top of the tree.
+- mm:         Builds and installs all of the modules in the current directory, and their
+              dependencies.
+- mmm:        Builds and installs all of the modules in the supplied directories, and their
+              dependencies.
+              To limit the modules being built use the syntax: mmm dir/:target1,target2.
+- mma:        Same as 'mm'
+- mmma:       Same as 'mmm'
+- provision:  Flash device with all required partitions. Options will be passed on to fastboot.
+- cgrep:      Greps on all local C/C++ files.
+- ggrep:      Greps on all local Gradle files.
+- gogrep:     Greps on all local Go files.
+- jgrep:      Greps on all local Java files.
+- jsongrep:   Greps on all local Json files.
+- ktgrep:     Greps on all local Kotlin files.
+- resgrep:    Greps on all local res/*.xml files.
+- mangrep:    Greps on all local AndroidManifest.xml files.
+- mgrep:      Greps on all local Makefiles and *.bp files.
+- owngrep:    Greps on all local OWNERS files.
+- rsgrep:     Greps on all local Rust files.
+- sepgrep:    Greps on all local sepolicy files.
+- sgrep:      Greps on all local source files.
+- tomlgrep:   Greps on all local Toml files.
+- pygrep:     Greps on all local Python files.
+- godir:      Go to the directory containing a file.
+- allmod:     List all modules.
+- gomod:      Go to the directory containing a module.
+- bmod:       Get the Bazel label of a Soong module if it is converted with bp2build.
+- pathmod:    Get the directory containing a module.
+- outmod:     Gets the location of a module's installed outputs with a certain extension.
+- dirmods:    Gets the modules defined in a given directory.
+- installmod: Adb installs a module's built APK.
+- refreshmod: Refresh list of modules for allmod/gomod/pathmod/outmod/installmod.
+- syswrite:   Remount partitions (e.g. system.img) as writable, rebooting if necessary.
+
+EOF
+
+    __print_lmodroid_functions_help
+
+cat <<EOF
+
+Environment options:
+- SANITIZE_HOST: Set to 'address' to use ASAN for all host modules.
+- ANDROID_QUIET_BUILD: set to 'true' to display only the essential messages.
+
+Look at the source to view more functions. The complete list is:
+EOF
+    local T=$(gettop)
+    local A=""
+    local i
+    for i in `cat $T/build/envsetup.sh $T/vendor/lmodroid/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
+      A="$A $i"
+    done
+    echo $A
+}
+
 # Get all the build variables needed by this script in a single call to the build system.
 function build_build_var_cache()
 {
     local T=$(gettop)
     # Grep out the variable names from the script.
-    cached_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/_get_build_var_cached/) print $(i+1)}' | sort -u | tr '\n' ' '`)
-    cached_abs_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/_get_abs_build_var_cached/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_vars=(`cat $T/build/envsetup.sh $T/vendor/lmodroid/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_abs_vars=(`cat $T/build/envsetup.sh $T/vendor/lmodroid/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
     # Call the build system to dump the "<val>=<value>" pairs as a shell script.
     build_dicts_script=`\builtin cd $T; build/soong/soong_ui.bash --dumpvars-mode \
                         --vars="${cached_vars[*]}" \
@@ -1177,3 +1251,5 @@ source_vendorsetup
 addcompletions
 
 export ANDROID_BUILD_TOP=$(gettop)
+
+. $ANDROID_BUILD_TOP/vendor/lmodroid/build/envsetup.sh
