@@ -205,14 +205,40 @@ function _get_build_var_cached()
 # This logic matches envsetup.mk
 function get_host_prebuilt_prefix
 {
-  local un=$(uname)
-  if [[ $un == "Linux" ]] ; then
-    echo linux-x86
-  elif [[ $un == "Darwin" ]] ; then
-    echo darwin-x86
-  else
-    echo "Error: Invalid host operating system: $un" 1>&2
-  fi
+    local T=$(gettop)
+    if [ ! "$T" ]; then
+        echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
+        return
+    fi
+    if (echo -n $1 | grep -q -e "^lmodroid_") ; then
+        LMODROID_BUILD=$(echo -n $1 | sed -e 's/^lmodroid_//g')
+    else
+        LMODROID_BUILD=
+    fi
+    export LMODROID_BUILD
+
+        TARGET_PRODUCT=$1 \
+        TARGET_BUILD_VARIANT= \
+        TARGET_BUILD_TYPE= \
+        TARGET_BUILD_APPS= \
+        get_build_var TARGET_DEVICE > /dev/null
+    # hide successful answers, but allow the errors to show
+}
+
+VARIANT_CHOICES=(user userdebug eng)
+
+# check to see if the supplied variant is valid
+function check_variant()
+{
+    local v
+    for v in ${VARIANT_CHOICES[@]}
+    do
+        if [ "$v" = "$1" ]
+        then
+            return 0
+        fi
+    done
+    return 1
 }
 
 # Add directories to PATH that are dependent on the lunch target.
@@ -569,14 +595,7 @@ function lunch()
         return 1
     fi
 
-    _lunch_meat $product $release $variant
-}
-
-function _lunch_meat()
-{
-    local product=$1
-    local release=$2
-    local variant=$3
+    check_product $product
 
     TARGET_PRODUCT=$product \
     TARGET_RELEASE=$release \
@@ -597,6 +616,8 @@ function _lunch_meat()
     export TARGET_BUILD_TYPE=release
 
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || echo
+
+    fixup_common_out_dir
 
     set_stuff_for_environment
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || printconfig
