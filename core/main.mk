@@ -115,6 +115,22 @@ endif
 
 $(KATI_obsolete_var ADDITIONAL_BUILD_PROPERTIES, Please use ADDITIONAL_SYSTEM_PROPERTIES)
 
+#
+# -----------------------------------------------------------------
+# Add the product-defined properties to the build properties.
+ifneq ($(BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED), true)
+  ADDITIONAL_SYSTEM_PROPERTIES += $(PRODUCT_PROPERTY_OVERRIDES)
+else
+  ifndef BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE
+    ADDITIONAL_SYSTEM_PROPERTIES += $(PRODUCT_PROPERTY_OVERRIDES)
+  endif
+endif
+
+#
+# -----------------------------------------------------------------
+# Add our custom properties to the build properties.
+ADDITIONAL_SYSTEM_PROPERTIES += $(LMODROID_PROPERTIES)
+
 # Bring in standard build system definitions.
 include $(BUILD_SYSTEM)/definitions.mk
 
