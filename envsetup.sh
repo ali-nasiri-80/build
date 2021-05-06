@@ -633,6 +633,18 @@ function lunch()
     # Note this is the string "release", not the value of the variable.
     export TARGET_BUILD_TYPE=release
 
+    if [ $used_lunch_menu -eq 1 ]; then
+      echo
+      echo "Hint: next time you can simply run 'lunch $selection'"
+    fi
+
+    local prebuilt_kernel=$(get_build_var TARGET_PREBUILT_KERNEL)
+    if [ -z "$prebuilt_kernel" ]; then
+      export INLINE_KERNEL_BUILDING=true
+    else
+      unset INLINE_KERNEL_BUILDING
+    fi
+
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || echo
 
     fixup_common_out_dir
