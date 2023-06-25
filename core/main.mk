@@ -163,7 +163,173 @@ endif
 TARGET_BUILD_JAVA_SUPPORT_LEVEL :=$= platform
 
 $(KATI_obsolete_var PRODUCT_FULL_TREBLE,\
-	Code should be written to work regardless of a device being Treble)
+	Code should be written to work regardless of a device being Treble or \
+	variables like PRODUCT_SEPOLICY_SPLIT should be used until that is \
+	possible.)
+
+# Sets ro.actionable_compatible_property.enabled to know on runtime whether the
+# allowed list of actionable compatible properties is enabled or not.
+ADDITIONAL_SYSTEM_PROPERTIES += ro.actionable_compatible_property.enabled=true
+
+# Add the system server compiler filter if they are specified for the product.
+ifneq (,$(PRODUCT_SYSTEM_SERVER_COMPILER_FILTER))
+ADDITIONAL_PRODUCT_PROPERTIES += dalvik.vm.systemservercompilerfilter=$(PRODUCT_SYSTEM_SERVER_COMPILER_FILTER)
+endif
+
+# Enable core platform API violation warnings on userdebug and eng builds.
+ifneq ($(TARGET_BUILD_VARIANT),user)
+ADDITIONAL_SYSTEM_PROPERTIES += persist.debug.dalvik.vm.core_platform_api_policy=just-warn
+endif
+
+# Define ro.sanitize.<name> properties for all global sanitizers.
+ADDITIONAL_SYSTEM_PROPERTIES += $(foreach s,$(SANITIZE_TARGET),ro.sanitize.$(s)=true)
+
+# Sets the default value of ro.postinstall.fstab.prefix to /system.
+# Device board config should override the value to /product when needed by:
+#
+#     PRODUCT_PRODUCT_PROPERTIES += ro.postinstall.fstab.prefix=/product
+#
+# It then uses ${ro.postinstall.fstab.prefix}/etc/fstab.postinstall to
+# mount system_other partition.
+ADDITIONAL_SYSTEM_PROPERTIES += ro.postinstall.fstab.prefix=/system
+
+# -----------------------------------------------------------------
+# ADDITIONAL_VENDOR_PROPERTIES will be installed in vendor/build.prop if
+# property_overrides_split_enabled is true. Otherwise it will be installed in
+# /system/build.prop
+ifdef BOARD_VNDK_VERSION
+  ifeq ($(BOARD_VNDK_VERSION),current)
+    ADDITIONAL_VENDOR_PROPERTIES := ro.vndk.version=$(PLATFORM_VNDK_VERSION)
+  else
+    ADDITIONAL_VENDOR_PROPERTIES := ro.vndk.version=$(BOARD_VNDK_VERSION)
+  endif
+endif
+
+# Add cpu properties for bionic and ART.
+ADDITIONAL_VENDOR_PROPERTIES += ro.bionic.arch=$(TARGET_ARCH)
+ADDITIONAL_VENDOR_PROPERTIES += ro.bionic.cpu_variant=$(TARGET_CPU_VARIANT_RUNTIME)
+ADDITIONAL_VENDOR_PROPERTIES += ro.bionic.2nd_arch=$(TARGET_2ND_ARCH)
+ADDITIONAL_VENDOR_PROPERTIES += ro.bionic.2nd_cpu_variant=$(TARGET_2ND_CPU_VARIANT_RUNTIME)
+
+ADDITIONAL_VENDOR_PROPERTIES += persist.sys.dalvik.vm.lib.2=libart.so
+ADDITIONAL_VENDOR_PROPERTIES += dalvik.vm.isa.$(TARGET_ARCH).variant=$(DEX2OAT_TARGET_CPU_VARIANT_RUNTIME)
+ifneq ($(DEX2OAT_TARGET_INSTRUCTION_SET_FEATURES),)
+  ADDITIONAL_VENDOR_PROPERTIES += dalvik.vm.isa.$(TARGET_ARCH).features=$(DEX2OAT_TARGET_INSTRUCTION_SET_FEATURES)
+endif
+
+ifdef TARGET_2ND_ARCH
+  ADDITIONAL_VENDOR_PROPERTIES += dalvik.vm.isa.$(TARGET_2ND_ARCH).variant=$($(TARGET_2ND_ARCH_VAR_PREFIX)DEX2OAT_TARGET_CPU_VARIANT_RUNTIME)
+  ifneq ($($(TARGET_2ND_ARCH_VAR_PREFIX)DEX2OAT_TARGET_INSTRUCTION_SET_FEATURES),)
+    ADDITIONAL_VENDOR_PROPERTIES += dalvik.vm.isa.$(TARGET_2ND_ARCH).features=$($(TARGET_2ND_ARCH_VAR_PREFIX)DEX2OAT_TARGET_INSTRUCTION_SET_FEATURES)
+  endif
+endif
+
+# Although these variables are prefixed with TARGET_RECOVERY_, they are also needed under charger
+# mode (via libminui).
+ifdef TARGET_RECOVERY_DEFAULT_ROTATION
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.minui.default_rotation=$(TARGET_RECOVERY_DEFAULT_ROTATION)
+endif
+ifdef TARGET_RECOVERY_DEFAULT_TOUCH_ROTATION
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.minui.default_touch_rotation=$(TARGET_RECOVERY_DEFAULT_TOUCH_ROTATION)
+endif
+ifdef TARGET_RECOVERY_OVERSCAN_PERCENT
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.minui.overscan_percent=$(TARGET_RECOVERY_OVERSCAN_PERCENT)
+endif
+ifdef TARGET_RECOVERY_PIXEL_FORMAT
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.minui.pixel_format=$(TARGET_RECOVERY_PIXEL_FORMAT)
+endif
+
+ifdef PRODUCT_USE_DYNAMIC_PARTITIONS
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.boot.dynamic_partitions=$(PRODUCT_USE_DYNAMIC_PARTITIONS)
+endif
+
+ifdef PRODUCT_RETROFIT_DYNAMIC_PARTITIONS
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.boot.dynamic_partitions_retrofit=$(PRODUCT_RETROFIT_DYNAMIC_PARTITIONS)
+endif
+
+ifdef PRODUCT_SHIPPING_API_LEVEL
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.product.first_api_level=$(PRODUCT_SHIPPING_API_LEVEL)
+endif
+
+ifneq ($(TARGET_BUILD_VARIANT),user)
+  ifdef PRODUCT_SET_DEBUGFS_RESTRICTIONS
+    ADDITIONAL_VENDOR_PROPERTIES += \
+      ro.product.debugfs_restrictions.enabled=$(PRODUCT_SET_DEBUGFS_RESTRICTIONS)
+  endif
+endif
+
+# Vendors with GRF must define BOARD_SHIPPING_API_LEVEL for the vendor API level.
+# This must not be defined for the non-GRF devices.
+ifdef BOARD_SHIPPING_API_LEVEL
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.board.first_api_level=$(BOARD_SHIPPING_API_LEVEL)
+
+# To manually set the vendor API level of the vendor modules, BOARD_API_LEVEL can be used.
+# The values of the GRF properties will be verified by post_process_props.py
+ifdef BOARD_API_LEVEL
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.board.api_level=$(BOARD_API_LEVEL)
+endif
+endif
+
+# Set build prop. This prop is read by ota_from_target_files when generating OTA,
+# to decide if VABC should be disabled.
+ifeq ($(BOARD_DONT_USE_VABC_OTA),true)
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.vendor.build.dont_use_vabc=true
+endif
+
+# Set the flag in vendor. So VTS would know if the new fingerprint format is in use when
+# the system images are replaced by GSI.
+ifeq ($(BOARD_USE_VBMETA_DIGTEST_IN_FINGERPRINT),true)
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.vendor.build.fingerprint_has_digest=1
+endif
+
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.vendor.build.security_patch=$(VENDOR_SECURITY_PATCH) \
+    ro.product.board=$(TARGET_BOOTLOADER_BOARD_NAME) \
+    ro.board.platform=$(TARGET_BOARD_PLATFORM) \
+    ro.hwui.use_vulkan=$(TARGET_USES_VULKAN)
+
+ifdef TARGET_SCREEN_DENSITY
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.sf.lcd_density=$(TARGET_SCREEN_DENSITY)
+endif
+
+ifdef AB_OTA_UPDATER
+ADDITIONAL_VENDOR_PROPERTIES += \
+    ro.build.ab_update=$(AB_OTA_UPDATER)
+endif
+
+# Set ro.product.vndk.version to know the VNDK version required by product
+# modules. It uses the version in PRODUCT_PRODUCT_VNDK_VERSION. If the value
+# is "current", use PLATFORM_VNDK_VERSION.
+ifdef PRODUCT_PRODUCT_VNDK_VERSION
+ifeq ($(PRODUCT_PRODUCT_VNDK_VERSION),current)
+ADDITIONAL_PRODUCT_PROPERTIES += ro.product.vndk.version=$(PLATFORM_VNDK_VERSION)
+else
+ADDITIONAL_PRODUCT_PROPERTIES += ro.product.vndk.version=$(PRODUCT_PRODUCT_VNDK_VERSION)
+endif
+endif
+
+ADDITIONAL_PRODUCT_PROPERTIES += ro.build.characteristics=$(TARGET_AAPT_CHARACTERISTICS)
+
+ifeq ($(AB_OTA_UPDATER),true)
+ADDITIONAL_PRODUCT_PROPERTIES += ro.product.ab_ota_partitions=$(subst $(space),$(comma),$(sort $(AB_OTA_PARTITIONS)))
+endif
+
+# Set this property for VTS to skip large page size tests on unsupported devices.
+ADDITIONAL_PRODUCT_PROPERTIES += \
+    ro.product.cpu.pagesize.max=$(TARGET_MAX_PAGE_SIZE_SUPPORTED)
+
 # -----------------------------------------------------------------
 ###
 ### In this section we set up the things that are different
