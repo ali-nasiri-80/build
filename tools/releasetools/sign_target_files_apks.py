@@ -595,7 +595,7 @@ def ProcessTargetFiles(input_tf_zip: zipfile.ZipFile, output_tf_zip, misc_info,
 
   for info in input_tf_zip.infolist():
     filename = info.filename
-    if filename.startswith("IMAGES/"):
+    if filename.startswith("IMAGES/") and not filename.endswith("vendor.img"):
       continue
 
     # Skip OTA-specific images (e.g. split super images), which will be
