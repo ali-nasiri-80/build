@@ -653,11 +653,9 @@ function lunch()
     set_stuff_for_environment
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || printconfig
 
-    if [[ -z "${ANDROID_QUIET_BUILD}" ]]; then
-        local spam_for_lunch=$(gettop)/build/make/tools/envsetup/spam_for_lunch
-        if [[ -x $spam_for_lunch ]]; then
-            $spam_for_lunch
-        fi
+    if [ $used_lunch_menu -eq 1 ]; then
+      echo
+      echo "Hint: next time you can simply run 'lunch $selection'"
     fi
 
     destroy_build_var_cache
