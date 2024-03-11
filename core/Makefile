@@ -1354,34 +1354,8 @@ else ifndef BUILDING_VENDOR_BOOT_IMAGE # && BOARD_USES_GENERIC_KERNEL_IMAGE != t
   endif
 endif # BUILDING_VENDOR_BOOT_IMAGE == "" && BOARD_USES_GENERIC_KERNEL_IMAGE != true
 
-ifdef BOARD_GKI_SIGNING_KEY_PATH
-  # GKI boot images will not set system version & SPL value in the header.
-  # They can be set by the device manufacturer in the AVB properties instead.
-  INTERNAL_MKBOOTIMG_VERSION_ARGS :=
-else
-  INTERNAL_MKBOOTIMG_VERSION_ARGS := \
-    --os_version $(PLATFORM_VERSION_LAST_STABLE) \
-    --os_patch_level $(PLATFORM_SECURITY_PATCH)
-endif # BOARD_GKI_SIGNING_KEY_PATH
-
-# $(1): image target to certify
-# $(2): out certificate target
-# $(3): image name
-# $(4): additional AVB arguments
-define generate_generic_boot_image_certificate
-  rm -rf "$(2)"
-  mkdir -p "$(dir $(2))"
-  $(GENERATE_GKI_CERTIFICATE) $(INTERNAL_GKI_CERTIFICATE_ARGS) \
-    --additional_avb_args "$(4)" \
-    --name "$(3)" --output "$(2)" "$(1)"
-endef
-
-INTERNAL_GKI_CERTIFICATE_ARGS :=
-INTERNAL_GKI_CERTIFICATE_DEPS :=
-
-INSTALLED_DTIMAGE_TARGET := $(PRODUCT_OUT)/dt.img
-
 ifeq ($(strip $(BOARD_KERNEL_SEPARATED_DT)),true)
+  INSTALLED_DTIMAGE_TARGET := $(PRODUCT_OUT)/dt.img
   INTERNAL_BOOTIMAGE_ARGS += --dt $(INSTALLED_DTIMAGE_TARGET)
   BOOTIMAGE_EXTRA_DEPS    := $(INSTALLED_DTIMAGE_TARGET)
 endif
