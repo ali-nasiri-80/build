@@ -214,6 +214,7 @@ function get_host_prebuilt_prefix
     export LMODROID_BUILD
 
         TARGET_PRODUCT=$1 \
+        TARGET_RELEASE=$2 \
         TARGET_BUILD_VARIANT= \
         TARGET_BUILD_TYPE= \
         TARGET_BUILD_APPS= \
@@ -591,14 +592,14 @@ function lunch()
         return 1
     fi
 
-    if ! check_product $product
+    if ! check_product $product $release
     then
         # if we can't find a product, try to grab it off the LMODroid GitLab
         T=$(gettop)
         cd $T > /dev/null
         $CUSTOMER_VENDOR_DIR/build/tools/roomservice.py $product
         cd - > /dev/null
-        check_product $product
+        check_product $product $release
     else
         T=$(gettop)
         cd $T > /dev/null

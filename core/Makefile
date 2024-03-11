@@ -1354,11 +1354,6 @@ else ifndef BUILDING_VENDOR_BOOT_IMAGE # && BOARD_USES_GENERIC_KERNEL_IMAGE != t
   endif
 endif # BUILDING_VENDOR_BOOT_IMAGE == "" && BOARD_USES_GENERIC_KERNEL_IMAGE != true
 
-<<<<<<< HEAD
-INTERNAL_MKBOOTIMG_VERSION_ARGS := \
-  --os_version $(PLATFORM_VERSION_LAST_STABLE) \
-  --os_patch_level $(PLATFORM_SECURITY_PATCH)
-=======
 ifdef BOARD_GKI_SIGNING_KEY_PATH
   # GKI boot images will not set system version & SPL value in the header.
   # They can be set by the device manufacturer in the AVB properties instead.
@@ -1412,7 +1407,6 @@ ifdef BOARD_GKI_SIGNING_KEY_PATH
     $(AVBTOOL)
 
 endif
->>>>>>> 6ceee7d2b3... build: Add support for device tree in boot.img
 
 # Define these only if we are building boot
 ifdef BUILDING_BOOT_IMAGE
